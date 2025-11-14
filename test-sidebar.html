@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Sidebar Communication</title>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    button { padding: 10px; margin: 5px; }
+    .log { background: #f0f0f0; padding: 10px; margin: 10px 0; max-height: 400px; overflow-y: auto; }
+    .success { color: green; }
+    .error { color: red; }
+    .info { color: blue; }
+  </style>
+</head>
+<body>
+  <h1>🔍 MamaCat Debug Test</h1>
+  
+  <button onclick="testChromeAPIs()">1. Test Chrome APIs</button>
+  <button onclick="testTabQuery()">2. Test Tab Query</button>
+  <button onclick="testContentScript()">3. Test Content Script</button>
+  <button onclick="testFullFlow()">4. Test Full Flow</button>
+  <button onclick="clearLog()">Clear Log</button>
+  
+  <div class="log" id="log"></div>
+  
+  <script>
+    function log(type, message) {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = type;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log(`[TEST-${type.toUpperCase()}]`, message);
+    }
+    
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+    }
+    
+    async function testChromeAPIs() {
+      log('info', '=== Testing Chrome APIs ===');
+      
+      try {
+        log('info', 'Testing chrome.tabs...');
+        if (chrome.tabs) {
+          log('success', '✅ chrome.tabs available');
+        } else {
+          log('error', '❌ chrome.tabs NOT available');
+        }
+        
+        log('info', 'Testing chrome.runtime...');
+        if (chrome.runtime) {
+          log('success', '✅ chrome.runtime available');
+        } else {
+          log('error', '❌ chrome.runtime NOT available');
+        }
+        
+        log('info', 'Testing chrome.scripting...');
+        if (chrome.scripting) {
+          log('success', '✅ chrome.scripting available');
+        } else {
+          log('error', '❌ chrome.scripting NOT available');
+        }
+        
+      } catch (error) {
+        log('error', `❌ Error: ${error.message}`);
+      }
+    }
+    
+    async function testTabQuery() {
+      log('info', '=== Testing Tab Query ===');
+      
+      try {
+        log('info', 'Querying active tab...');
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        
+        if (tabs && tabs.length > 0) {
+          const tab = tabs[0];
+          log('success', `✅ Found active tab: ${tab.id}`);
+          log('info', `   URL: ${tab.url}`);
+          log('info', `   Title: ${tab.title}`);
+          
+          if (tab.url.includes('labs.google')) {
+            log('success', '✅ Tab is on Google Labs');
+          } else {
+            log('error', '❌ Tab is NOT on Google Labs');
+          }
+        } else {
+          log('error', '❌ No active tab found');
+        }
+        
+      } catch (error) {
+        log('error', `❌ Error: ${error.message}`);
+      }
+    }
+    
+    async function testContentScript() {
+      log('info', '=== Testing Content Script ===');
+      
+      try {
+        log('info', 'Getting active tab...');
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        
+        if (!tabs || tabs.length === 0) {
+          log('error', '❌ No active tab');
+          return;
+        }
+        
+        const tab = tabs[0];
+        log('success', `✅ Tab ID: ${tab.id}`);
+        
+        if (!tab.url.includes('labs.google')) {
+          log('error', '❌ Not on Google Labs - please navigate there first');
+          return;
+        }
+        
+        log('info', 'Injecting content script...');
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['content.js']
+          });
+          log('success', '✅ Content script injected');
+        } catch (injectError) {
+          log('info', '⚠️ Injection error (might already be injected): ' + injectError.message);
+        }
+        
+        log('info', 'Sending test message...');
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          action: 'ping'
+        });
+        
+        log('success', '✅ Content script responded: ' + JSON.stringify(response));
+        
+      } catch (error) {
+        log('error', `❌ Error: ${error.message}`);
+        log('error', `   Stack: ${error.stack}`);
+      }
+    }
+    
+    async function testFullFlow() {
+      log('info', '=== Testing Full Flow ===');
+      
+      try {
+        // Step 1: Check APIs
+        log('info', '[1/5] Checking Chrome APIs...');
+        if (!chrome.tabs || !chrome.scripting) {
+          log('error', '❌ Chrome APIs not available');
+          return;
+        }
+        log('success', '✅ Chrome APIs available');
+        
+        // Step 2: Get tab
+        log('info', '[2/5] Getting active tab...');
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs || tabs.length === 0) {
+          log('error', '❌ No active tab');
+          return;
+        }
+        const tab = tabs[0];
+        log('success', `✅ Tab found: ${tab.id}`);
+        
+        // Step 3: Check URL
+        log('info', '[3/5] Checking URL...');
+        if (!tab.url.includes('labs.google')) {
+          log('error', `❌ Wrong URL: ${tab.url}`);
+          log('error', '   Please navigate to: https://labs.google/fx/tools/flow');
+          return;
+        }
+        log('success', '✅ On Google Labs');
+        
+        // Step 4: Inject script
+        log('info', '[4/5] Injecting content script...');
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['content.js']
+          });
+          log('success', '✅ Content script injected');
+        } catch (e) {
+          log('info', '⚠️ Already injected (OK)');
+        }
+        
+        await new Promise(r => setTimeout(r, 1000));
+        
+        // Step 5: Send message
+        log('info', '[5/5] Sending test message...');
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          action: 'ping'
+        });
+        log('success', '✅ Message sent and received!');
+        log('success', '✅ ALL TESTS PASSED - Extension is working!');
+        
+      } catch (error) {
+        log('error', `❌ Test failed: ${error.message}`);
+        log('error', `   Stack: ${error.stack}`);
+      }
+    }
+  </script>
+</body>
+</html>

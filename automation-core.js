@@ -38,46 +38,140 @@ class GoogleLabsAutomation {
 
   // ═══════════════════════════════════════════════════════════
   // STEP 1: CREATE NEW PROJECT
+  // Based on Python: create_new_project() and rename_project()
+  // Clicks: button with "New project" text
+  // Then: Edit button (pencil icon), input field, save
   // ═══════════════════════════════════════════════════════════
   
   async createNewProject(projectName) {
     this.log('info', `🆕 Creating project: ${projectName}`);
     
     try {
-      // Look for Create button
-      const createButton = document.querySelector('button[aria-label*="Create"]') ||
-                          Array.from(document.querySelectorAll('button')).find(btn => 
-                            btn.textContent.includes('Create')
-                          );
+      // Step 1: Click "New project" button - EXACT from Python (line 2533-2543)
+      // Selector from user: button.sc-c177465c-1.hVamcH.sc-a38764c7-0.fXsrxE
+      this.log('info', '[PROJECT] Looking for New Project button...');
       
-      if (createButton) {
-        createButton.click();
-        await this.wait(2000);
-        this.log('success', '✅ Clicked create button');
-      }
+      let newProjectBtn = null;
       
-      // Enter project name
-      const nameInput = document.querySelector('input[type="text"]') ||
-                       document.querySelector('[contenteditable="true"]');
+      // Method 1: By class (from user's HTML)
+      newProjectBtn = document.querySelector('button.sc-c177465c-1.hVamcH.sc-a38764c7-0.fXsrxE');
       
-      if (nameInput) {
-        nameInput.focus();
-        await this.wait(500);
-        
-        if (nameInput.tagName === 'INPUT') {
-          nameInput.value = projectName;
-          nameInput.dispatchEvent(new Event('input', { bubbles: true }));
-        } else {
-          nameInput.textContent = projectName;
+      // Method 2: By text content (Python's method)
+      if (!newProjectBtn) {
+        const buttons = document.querySelectorAll('button');
+        for (const btn of buttons) {
+          if (btn.textContent.toLowerCase().includes('new project')) {
+            newProjectBtn = btn;
+            break;
+          }
         }
-        
-        await this.wait(1000);
-        this.log('success', `✅ Project named: ${projectName}`);
       }
+      
+      // Method 3: XPath
+      if (!newProjectBtn) {
+        newProjectBtn = this.getElementByXPath("//button[contains(., 'New project')]");
+      }
+      
+      if (!newProjectBtn) {
+        throw new Error('New Project button not found');
+      }
+      
+      this.log('success', '[PROJECT] ✅ Found New Project button');
+      newProjectBtn.click();
+      await this.wait(3000);
+      this.log('success', '[PROJECT] ✅ Clicked New Project button');
+      
+      // Step 2: Rename project - EXACT from Python (line 2564-2615)
+      await this.renameProject(projectName);
       
       return true;
     } catch (error) {
-      this.log('error', `Failed to create project: ${error.message}`);
+      this.log('error', `[PROJECT] Failed to create: ${error.message}`);
+      console.error('Create project error:', error);
+      return false;
+    }
+  }
+  
+  async renameProject(projectName) {
+    this.log('info', `[RENAME] Renaming to: ${projectName}`);
+    
+    try {
+      await this.wait(2000);
+      
+      // Find edit button (pencil icon) - EXACT from Python (line 2575-2583)
+      // User's selector: button with i.google-symbols containing "edit"
+      let editBtn = null;
+      
+      // Method 1: By XPath (Python's primary method)
+      editBtn = this.getElementByXPath("//button[.//i[contains(@class, 'google-symbols') and contains(., 'edit')]]");
+      
+      // Method 2: By searching buttons (Python's fallback)
+      if (!editBtn) {
+        const buttons = document.querySelectorAll('button');
+        for (const btn of buttons) {
+          if (btn.innerHTML.toLowerCase().includes('edit')) {
+            editBtn = btn;
+            break;
+          }
+        }
+      }
+      
+      if (!editBtn) {
+        throw new Error('Edit button (pencil icon) not found');
+      }
+      
+      this.log('success', '[RENAME] ✅ Found edit button');
+      editBtn.click();
+      await this.wait(1000);
+      this.log('success', '[RENAME] ✅ Clicked edit button');
+      
+      // Find input field - EXACT from Python (line 2587-2589)
+      const inputs = document.querySelectorAll('input[type="text"]');
+      
+      if (inputs.length === 0) {
+        throw new Error('Name input field not found');
+      }
+      
+      const nameInput = inputs[0];
+      this.log('success', '[RENAME] ✅ Found input field');
+      
+      // Clear and enter name - EXACT from Python (line 2590-2597)
+      nameInput.click();
+      await this.wait(500);
+      
+      // Select all and delete
+      nameInput.select();
+      await this.wait(300);
+      nameInput.value = '';
+      await this.wait(300);
+      
+      // Enter new name
+      nameInput.value = projectName;
+      nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+      await this.wait(500);
+      
+      this.log('success', `[RENAME] ✅ Entered name: ${projectName}`);
+      
+      // Save - EXACT from Python (line 2600-2607)
+      // Look for check icon button
+      let saveBtn = this.getElementByXPath("//button[.//i[contains(@class, 'google-symbols') and contains(., 'check')]]");
+      
+      if (saveBtn) {
+        saveBtn.click();
+        this.log('success', '[RENAME] ✅ Clicked save button');
+      } else {
+        // Fallback: Press Enter
+        nameInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+        this.log('success', '[RENAME] ✅ Pressed Enter to save');
+      }
+      
+      await this.wait(2000);
+      this.log('success', `[RENAME] ✅ Project renamed to: ${projectName}`);
+      
+      return true;
+    } catch (error) {
+      this.log('error', `[RENAME] Failed: ${error.message}`);
+      console.error('Rename error:', error);
       return false;
     }
   }
@@ -534,23 +628,52 @@ class GoogleLabsAutomation {
     this.config = config;
     this.isRunning = true;
     
+    console.log('[AUTOMATION] Starting processSingleStory');
+    console.log('[AUTOMATION] Story:', story);
+    console.log('[AUTOMATION] Config:', config);
+    
     this.log('info', '═══════════════════════════════════════');
     this.log('info', `🎬 PROCESSING: ${story.name}`);
     this.log('info', '═══════════════════════════════════════');
     
     try {
       // Step 1: Create project
-      await this.createNewProject(`MamaCat - ${story.name}`);
+      this.log('info', '[STEP 1] Creating new project...');
+      console.log('[AUTOMATION] Step 1: Creating project');
+      const projectCreated = await this.createNewProject(`MamaCat - ${story.name}`);
+      
+      if (!projectCreated) {
+        throw new Error('Failed to create project');
+      }
+      
+      this.log('success', '[STEP 1] ✅ Project created');
       
       // Step 2: Switch to ingredients mode
-      await this.switchToIngredientsMode();
+      this.log('info', '[STEP 2] Switching to ingredients mode...');
+      console.log('[AUTOMATION] Step 2: Switching mode');
+      const modeSwitched = await this.switchToIngredientsMode();
+      
+      if (!modeSwitched) {
+        this.log('warning', '[STEP 2] ⚠️ Could not switch mode, continuing anyway');
+      } else {
+        this.log('success', '[STEP 2] ✅ Mode switched');
+      }
       
       // Step 3: Generate story ingredients (reverse order)
       const ingredients = story.ingredients || [];
       if (ingredients.length > 0) {
+        this.log('info', `[STEP 3] Generating ${ingredients.length} story ingredients...`);
+        console.log('[AUTOMATION] Step 3: Generating ingredients');
+        
         const reversed = ingredients.slice().reverse();
-        for (const ingredient of reversed) {
-          if (!this.isRunning) break;
+        for (let i = 0; i < reversed.length; i++) {
+          if (!this.isRunning) {
+            this.log('warning', '⏹️ Stopped by user');
+            break;
+          }
+          
+          const ingredient = reversed[i];
+          this.log('info', `[INGREDIENT ${i + 1}/${reversed.length}] ${ingredient.Ingredient_No}`);
           
           await this.openGenerateImageDialog();
           await this.enterPromptAndGenerate(ingredient.Prompt, ingredient.Ingredient_No);
@@ -558,34 +681,69 @@ class GoogleLabsAutomation {
           await this.clickSaveAsNewIngredient(ingredient.Ingredient_No);
           await this.waitForSaveCompleteAndRemove(ingredient.Ingredient_No);
         }
+        
+        this.log('success', '[STEP 3] ✅ All ingredients generated');
+      } else {
+        this.log('info', '[STEP 3] No story ingredients to generate');
       }
       
       // Step 4: Upload base cats (reverse order)
       const baseCats = config.baseCatImages || [];
       if (baseCats.length > 0) {
+        this.log('info', `[STEP 4] Uploading ${baseCats.length} base cat images...`);
+        console.log('[AUTOMATION] Step 4: Uploading base cats');
+        
         const reversed = baseCats.slice().reverse();
-        for (const baseCat of reversed) {
-          if (!this.isRunning) break;
+        for (let i = 0; i < reversed.length; i++) {
+          if (!this.isRunning) {
+            this.log('warning', '⏹️ Stopped by user');
+            break;
+          }
+          
+          const baseCat = reversed[i];
           const num = baseCat.name.match(/(\d+)/)?.[1] || '00';
+          this.log('info', `[BASE CAT ${i + 1}/${reversed.length}] ${baseCat.name}`);
+          
           await this.uploadSingleIngredient(baseCat, num);
         }
+        
+        this.log('success', '[STEP 4] ✅ Base cats uploaded');
+      } else {
+        this.log('info', '[STEP 4] No base cat images to upload');
       }
       
       // Step 5: Process prompts
       const prompts = story.prompts || [];
-      for (let i = 0; i < prompts.length; i++) {
-        if (!this.isRunning) break;
+      if (prompts.length > 0) {
+        this.log('info', `[STEP 5] Processing ${prompts.length} prompts...`);
+        console.log('[AUTOMATION] Step 5: Processing prompts');
         
-        const prompt = prompts[i];
-        await this.selectIngredientsForPrompt(prompt.Ingredients_No || '');
-        await this.enterPromptAndGenerate(prompt.Prompt, i + 1);
+        for (let i = 0; i < prompts.length; i++) {
+          if (!this.isRunning) {
+            this.log('warning', '⏹️ Stopped by user');
+            break;
+          }
+          
+          const prompt = prompts[i];
+          this.log('info', `[PROMPT ${i + 1}/${prompts.length}] Processing...`);
+          
+          await this.selectIngredientsForPrompt(prompt.Ingredients_No || '');
+          await this.enterPromptAndGenerate(prompt.Prompt, i + 1);
+        }
+        
+        this.log('success', '[STEP 5] ✅ All prompts processed');
+      } else {
+        this.log('info', '[STEP 5] No prompts to process');
       }
       
       this.log('success', `✅ Story "${story.name}" completed!`);
+      console.log('[AUTOMATION] Story completed successfully');
       window.postMessage({ type: 'MAMACAT_STORY_COMPLETE' }, '*');
       
     } catch (error) {
-      this.log('error', `Story failed: ${error.message}`);
+      console.error('[AUTOMATION] Story processing error:', error);
+      this.log('error', `❌ Story failed: ${error.message}`);
+      this.log('error', `💡 Error details: ${error.stack || 'No stack trace'}`);
       window.postMessage({ type: 'MAMACAT_ERROR', error: error.message }, '*');
     }
   }
@@ -599,21 +757,34 @@ class GoogleLabsAutomation {
 // Make available globally
 window.GoogleLabsAutomation = GoogleLabsAutomation;
 
+// Signal that the core is ready
+console.log('🎬 GoogleLabsAutomation class loaded and ready');
+window.postMessage({ type: 'MAMACAT_CORE_READY' }, '*');
+
 // Listen for messages
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
   
+  console.log('[AUTOMATION-CORE] Received message:', event.data.type);
+  
   if (event.data.type === 'MAMACAT_STOP') {
+    console.log('[AUTOMATION-CORE] Stop signal received');
     if (window.currentAutomation) {
       window.currentAutomation.stop();
     }
   } else if (event.data.type === 'MAMACAT_PROCESS_STORY') {
+    console.log('[AUTOMATION-CORE] Process story signal received');
     const { story, config } = event.data;
     
+    console.log('[AUTOMATION-CORE] Story:', story.name);
+    console.log('[AUTOMATION-CORE] Config:', config);
+    
     if (!window.currentAutomation) {
+      console.log('[AUTOMATION-CORE] Creating new automation instance');
       window.currentAutomation = new GoogleLabsAutomation();
     }
     
+    console.log('[AUTOMATION-CORE] Starting story processing...');
     window.currentAutomation.processSingleStory(story, config);
   }
 });

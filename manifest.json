@@ -18,6 +18,7 @@
   "side_panel": {
     "default_path": "sidebar.html"
   },
+  "options_page": "test-sidebar.html",
   "background": {
     "service_worker": "background.js"
   },
@@ -30,7 +31,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["automation-core.js"],
+      "resources": ["automation-core.js", "automation-core-debug.js"],
       "matches": ["https://labs.google/*"]
     }
   ],

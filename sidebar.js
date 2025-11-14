@@ -1,5 +1,11 @@
 // Sidebar JavaScript - Main Logic
 console.log('🎬 MamaCat Sidebar Loaded');
+console.log('[SIDEBAR] Chrome APIs available:', {
+  tabs: !!chrome.tabs,
+  runtime: !!chrome.runtime,
+  scripting: !!chrome.scripting,
+  storage: !!chrome.storage
+});
 
 // State Management
 const state = {
@@ -82,13 +88,54 @@ const elements = {
   logContainer: document.getElementById('logContainer')
 };
 
+// ═══════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS (Must be defined before use)
+// ═══════════════════════════════════════════════════════════
+
+// Logging
+function addLog(type, message) {
+  const timestamp = new Date().toLocaleTimeString();
+  const logEntry = document.createElement('div');
+  logEntry.className = `log-entry log-${type}`;
+  logEntry.innerHTML = `<span class="log-time">[${timestamp}]</span>${message}`;
+  
+  if (elements.logContainer) {
+    elements.logContainer.appendChild(logEntry);
+    elements.logContainer.scrollTop = elements.logContainer.scrollHeight;
+  } else {
+    console.log(`[LOG-${type}]`, message);
+  }
+}
+
+// Status Management
+function updateStatus(type, message) {
+  if (elements.statusDot && elements.statusText) {
+    elements.statusDot.className = `status-dot ${type}`;
+    elements.statusText.textContent = message;
+  }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-  setupEventListeners();
-  checkGoogleLabsConnection();
-  checkFileSystemAPISupport();
-  addLog('info', '🎬 MamaCat Video Generator Ready');
-  addLog('info', 'Please select all files to begin');
+  console.log('[SIDEBAR] DOMContentLoaded - Initializing...');
+  
+  try {
+    setupEventListeners();
+    console.log('[SIDEBAR] Event listeners set up');
+    
+    checkGoogleLabsConnection();
+    console.log('[SIDEBAR] Checked Google Labs connection');
+    
+    checkFileSystemAPISupport();
+    console.log('[SIDEBAR] Checked file system support');
+    
+    addLog('info', '🎬 MamaCat Video Generator Ready');
+    addLog('info', 'Please select all files to begin');
+    console.log('[SIDEBAR] Initialization complete');
+  } catch (error) {
+    console.error('[SIDEBAR] Initialization error:', error);
+    console.log('[SIDEBAR] Error details:', error.stack);
+  }
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -174,9 +221,9 @@ async function handleAllFilesSelected(event) {
     };
     
     // Show results
-    elements.folderInfo.style.display = 'block';
-    elements.folderName.textContent = `${files.length} files loaded`;
-    elements.scanResults.style.display = 'block';
+    if (elements.folderInfo) elements.folderInfo.style.display = 'block';
+    if (elements.folderName) elements.folderName.textContent = `${files.length} files loaded`;
+    if (elements.scanResults) elements.scanResults.style.display = 'block';
     
     // Enable setup button
     elements.setupBtn.disabled = false;
@@ -335,31 +382,37 @@ async function readExcelFile(file) {
 // Event Listeners
 function setupEventListeners() {
   // File selection
-  elements.selectAllFilesBtn.addEventListener('click', () => {
-    elements.allFilesInput.click();
-  });
-  elements.allFilesInput.addEventListener('change', handleAllFilesSelected);
+  if (elements.selectAllFilesBtn) {
+    elements.selectAllFilesBtn.addEventListener('click', () => {
+      if (elements.allFilesInput) elements.allFilesInput.click();
+    });
+  }
+  if (elements.allFilesInput) {
+    elements.allFilesInput.addEventListener('change', handleAllFilesSelected);
+  }
   
-  // Buttons
-  elements.openFlowBtn.addEventListener('click', openGoogleFlow);
-  elements.setupBtn.addEventListener('click', setupAndVerify);
-  elements.startBtn.addEventListener('click', startGeneration);
-  elements.stopBtn.addEventListener('click', stopGeneration);
-  elements.clearLogBtn.addEventListener('click', clearLog);
-  elements.clearLogBtn2.addEventListener('click', clearLog);
-  elements.copyLogBtn.addEventListener('click', copyLog);
-  elements.exportReportBtn.addEventListener('click', exportReport);
+  // Buttons - with null checks
+  if (elements.openFlowBtn) elements.openFlowBtn.addEventListener('click', openGoogleFlow);
+  if (elements.setupBtn) elements.setupBtn.addEventListener('click', setupAndVerify);
+  if (elements.startBtn) elements.startBtn.addEventListener('click', startGeneration);
+  if (elements.stopBtn) elements.stopBtn.addEventListener('click', stopGeneration);
+  if (elements.clearLogBtn) elements.clearLogBtn.addEventListener('click', clearLog);
+  if (elements.clearLogBtn2) elements.clearLogBtn2.addEventListener('click', clearLog);
+  if (elements.copyLogBtn) elements.copyLogBtn.addEventListener('click', copyLog);
+  if (elements.exportReportBtn) elements.exportReportBtn.addEventListener('click', exportReport);
   
   // Quick select buttons
   document.querySelectorAll('.btn-quick').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const selection = e.target.dataset.select;
-      elements.storySelection.value = selection;
+      if (elements.storySelection) elements.storySelection.value = selection;
     });
   });
   
   // Story selection input
-  elements.storySelection.addEventListener('input', validateStorySelection);
+  if (elements.storySelection) {
+    elements.storySelection.addEventListener('input', validateStorySelection);
+  }
 }
 
 // File Upload Handlers
@@ -520,32 +573,37 @@ async function setupAndVerify() {
     state.verified = true;
     
     // Show simple success message
-    elements.verificationResults.style.display = 'block';
-    elements.verificationContent.innerHTML = `
-      <div class="verify-item verify-success">
-        ✅ All files matched! Found ${state.stories.length} synchronized stories ready to process.
-      </div>
-    `;
+    if (elements.verificationResults) elements.verificationResults.style.display = 'block';
+    if (elements.verificationContent) {
+      elements.verificationContent.innerHTML = `
+        <div class="verify-item verify-success">
+          ✅ All files matched! Found ${state.stories.length} synchronized stories ready to process.
+        </div>
+      `;
+    }
     
     displayStories();
     
     // Hide upload section after successful verification
-    document.getElementById('uploadSection').style.display = 'none';
+    const uploadSection = document.getElementById('uploadSection');
+    if (uploadSection) uploadSection.style.display = 'none';
     
-    elements.storiesSection.style.display = 'block';
-    elements.configSection.style.display = 'block';
-    elements.actionSection.style.display = 'block';
+    if (elements.storiesSection) elements.storiesSection.style.display = 'block';
+    if (elements.configSection) elements.configSection.style.display = 'block';
+    if (elements.actionSection) elements.actionSection.style.display = 'block';
     updateStatus('ready', '✅ Verification complete - Select stories');
     addLog('success', `✅ All files matched! Found ${state.stories.length} stories`);
   } else {
     updateStatus('error', '❌ Verification failed');
     
     // Show errors
-    elements.verificationResults.style.display = 'block';
-    elements.verificationContent.innerHTML = results
-      .filter(r => r.type === 'error')
-      .map(r => `<div class="verify-item verify-${r.type}">${r.message}</div>`)
-      .join('');
+    if (elements.verificationResults) elements.verificationResults.style.display = 'block';
+    if (elements.verificationContent) {
+      elements.verificationContent.innerHTML = results
+        .filter(r => r.type === 'error')
+        .map(r => `<div class="verify-item verify-${r.type}">${r.message}</div>`)
+        .join('');
+    }
     
     addLog('error', '❌ Please fix errors and try again');
   }
@@ -569,33 +627,69 @@ function validateStorySelection() {
 
 // Start Generation
 async function startGeneration() {
+  console.log('[SIDEBAR] startGeneration called');
+  console.log('[SIDEBAR] State:', state);
+  
   if (!state.verified) {
+    console.log('[SIDEBAR] Not verified');
     addLog('error', '❌ Please run Setup & Verify first');
     return;
   }
   
   // Parse story selection
   const selection = elements.storySelection.value.trim().toLowerCase();
+  console.log('[SIDEBAR] Story selection:', selection);
   
   if (!selection) {
+    console.log('[SIDEBAR] No selection');
     addLog('error', '❌ Please select stories to process');
     return;
   }
   
   state.selectedStories = parseStorySelection(selection);
+  console.log('[SIDEBAR] Parsed stories:', state.selectedStories);
   
   if (state.selectedStories.length === 0) {
+    console.log('[SIDEBAR] No stories parsed');
     addLog('error', '❌ Invalid story selection');
     return;
   }
   
-  // Check if on Google Labs
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab || !tab.url.includes('labs.google')) {
-    addLog('error', '❌ Please open Google Labs Flow first');
-    addLog('info', '💡 Navigate to: https://labs.google/fx/tools/flow');
+  // Get active tab through background script (sidepanel can't query tabs directly)
+  console.log('[SIDEBAR] Getting active tab info...');
+  
+  let tab;
+  try {
+    // Ask background script for tab info
+    const response = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ action: 'getActiveTab' }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(response);
+        }
+      });
+    });
+    
+    tab = response.tab;
+    console.log('[SIDEBAR] Active tab:', tab);
+    
+  } catch (error) {
+    console.error('[SIDEBAR] Failed to get tab:', error);
+    addLog('error', '❌ Failed to get active tab information');
     return;
   }
+  
+  if (!tab || !tab.url || !tab.url.includes('labs.google')) {
+    console.log('[SIDEBAR] Not on Google Labs. Current URL:', tab?.url);
+    addLog('error', '❌ Please open Google Labs Flow first');
+    addLog('info', '💡 Navigate to: https://labs.google/fx/tools/flow');
+    addLog('info', `Current page: ${tab?.url || 'unknown'}`);
+    return;
+  }
+  
+  addLog('success', '✅ On Google Labs page');
+  console.log('[SIDEBAR] Verified on Google Labs');
   
   // Prepare configuration
   const config = {
@@ -606,12 +700,12 @@ async function startGeneration() {
     baseCatImages: [state.baseCat01, state.baseCat02]
   };
   
-  // Update UI
+  // Update UI safely
   state.isRunning = true;
-  elements.startBtn.style.display = 'none';
-  elements.stopBtn.style.display = 'block';
-  elements.progressSection.style.display = 'block';
-  elements.exportReportBtn.style.display = 'block';
+  if (elements.startBtn) elements.startBtn.style.display = 'none';
+  if (elements.stopBtn) elements.stopBtn.style.display = 'block';
+  if (elements.progressSection) elements.progressSection.style.display = 'block';
+  if (elements.exportReportBtn) elements.exportReportBtn.style.display = 'block';
   
   updateStatus('working', '🚀 Generation started');
   
@@ -621,28 +715,48 @@ async function startGeneration() {
   addLog('info', `⚙️ Max Concurrent: ${config.maxConcurrent}`);
   addLog('info', '═══════════════════════════════════════');
   
-  // Inject content script if needed, then send message
+  // Send message through background script (sidepanel can't access chrome.tabs directly)
   try {
-    // First, try to inject the content script
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ['content.js']
-      });
-      addLog('info', '📝 Content script injected');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for script to initialize
-    } catch (injectError) {
-      // Script might already be injected, that's okay
-      addLog('info', '📝 Using existing content script');
+    addLog('info', '📝 Preparing to start generation...');
+    console.log('[SIDEBAR] Starting generation process');
+    console.log('[SIDEBAR] Tab ID:', tab.id);
+    console.log('[SIDEBAR] Config:', config);
+    
+    // Check if chrome.runtime is available
+    if (!chrome.runtime || !chrome.runtime.sendMessage) {
+      throw new Error('Chrome runtime API not available. This is a browser limitation with sidepanels.');
     }
     
-    // Now send the message
-    await chrome.tabs.sendMessage(tab.id, {
-      action: 'startGeneration',
+    addLog('info', '📤 Sending command to background script...');
+    console.log('[SIDEBAR] Sending to background script');
+    
+    // Send to background script which will relay to content script
+    chrome.runtime.sendMessage({
+      action: 'startGenerationFromSidebar',
+      tabId: tab.id,
       config: config
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('[SIDEBAR] Runtime error:', chrome.runtime.lastError);
+        addLog('error', `❌ Communication error: ${chrome.runtime.lastError.message}`);
+        stopGeneration();
+        return;
+      }
+      
+      console.log('[SIDEBAR] Background script response:', response);
+      
+      if (response && response.success) {
+        addLog('success', '✅ Command sent successfully');
+      } else {
+        addLog('error', `❌ Failed: ${response?.error || 'Unknown error'}`);
+        stopGeneration();
+      }
     });
+    
   } catch (error) {
+    console.error('[SIDEBAR] Error:', error);
     addLog('error', `❌ Failed to start: ${error.message}`);
+    addLog('error', `💡 Error details: ${error.stack || 'No stack'}`);
     addLog('warning', '💡 Try refreshing the Google Labs page and reopening the sidebar');
     stopGeneration();
   }
@@ -683,27 +797,27 @@ function parseStorySelection(selection) {
 
 async function stopGeneration() {
   state.isRunning = false;
-  elements.startBtn.style.display = 'block';
-  elements.stopBtn.style.display = 'none';
+  
+  // Safely update UI elements
+  if (elements.startBtn) elements.startBtn.style.display = 'block';
+  if (elements.stopBtn) elements.stopBtn.style.display = 'none';
   
   updateStatus('ready', '⏹️ Stopped');
   addLog('warning', '⏹️ Generation stopped by user');
   
-  // Send stop message to content script
+  // Send stop message through background script
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) {
-      await chrome.tabs.sendMessage(tab.id, { action: 'stopGeneration' });
-    }
+    chrome.runtime.sendMessage({
+      action: 'stopGeneration'
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('[SIDEBAR] Stop message error:', chrome.runtime.lastError);
+      } else {
+        console.log('[SIDEBAR] Stop message sent');
+      }
+    });
   } catch (error) {
-    console.error('Failed to send stop message:', error);
-  }
-  
-  // Also send stop via window message if on same page
-  try {
-    window.postMessage({ type: 'MAMACAT_STOP' }, '*');
-  } catch (error) {
-    console.error('Failed to post stop message:', error);
+    console.error('[SIDEBAR] Failed to send stop message:', error);
   }
 }
 
@@ -719,30 +833,16 @@ function updateProgress(data) {
   
   // Update progress bar
   const progress = totalPrompts > 0 ? (prompts / totalPrompts) * 100 : 0;
-  elements.progressBar.style.width = `${progress}%`;
+  if (elements.progressBar) {
+    elements.progressBar.style.width = `${progress}%`;
+  }
 }
 
 function updateTask(task) {
   elements.currentTask.textContent = task;
 }
 
-// Status Management
-function updateStatus(type, message) {
-  elements.statusDot.className = `status-dot ${type}`;
-  elements.statusText.textContent = message;
-}
-
-// Logging
-function addLog(type, message) {
-  const timestamp = new Date().toLocaleTimeString();
-  const logEntry = document.createElement('div');
-  logEntry.className = `log-entry log-${type}`;
-  logEntry.innerHTML = `<span class="log-time">[${timestamp}]</span>${message}`;
-  
-  elements.logContainer.appendChild(logEntry);
-  elements.logContainer.scrollTop = elements.logContainer.scrollHeight;
-}
-
+// Helper functions for UI
 function openGoogleFlow() {
   chrome.tabs.create({ url: 'https://labs.google/fx/tools/flow' });
   addLog('info', '🔗 Opening Google Flow in new tab...');
@@ -821,27 +921,37 @@ async function checkGoogleLabsConnection() {
   }
 }
 
-// Listen for messages from content script
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  switch (message.action) {
-    case 'updateProgress':
-      updateProgress(message.data);
-      break;
-    case 'updateTask':
-      updateTask(message.task);
-      break;
-    case 'log':
-      addLog(message.type, message.message);
-      break;
-    case 'generationComplete':
-      stopGeneration();
-      updateStatus('ready', '✅ Generation complete');
-      addLog('success', '🎉 All videos generated successfully!');
-      break;
-    case 'generationError':
-      stopGeneration();
-      updateStatus('error', '❌ Error occurred');
-      addLog('error', `❌ Generation failed: ${message.error}`);
-      break;
-  }
-});
+// Listen for messages from background/content script
+if (chrome.runtime && chrome.runtime.onMessage) {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('[SIDEBAR] Received message:', message);
+    
+    switch (message.action) {
+      case 'updateProgress':
+        updateProgress(message.data);
+        break;
+      case 'updateTask':
+        updateTask(message.task);
+        break;
+      case 'log':
+        addLog(message.type, message.message);
+        break;
+      case 'generationComplete':
+        stopGeneration();
+        updateStatus('ready', '✅ Generation complete');
+        addLog('success', '🎉 All videos generated successfully!');
+        break;
+      case 'generationError':
+        stopGeneration();
+        updateStatus('error', '❌ Error occurred');
+        addLog('error', `❌ Generation failed: ${message.error}`);
+        break;
+    }
+    
+    sendResponse({ received: true });
+    return true;
+  });
+} else {
+  console.error('[SIDEBAR] chrome.runtime.onMessage not available!');
+  addLog('error', '❌ Chrome runtime API not available in sidebar');
+}
