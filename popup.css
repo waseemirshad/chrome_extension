@@ -42,6 +42,26 @@ header h1 {
   border-bottom: 1px solid #e9ecef;
 }
 
+.btn-open-flow {
+  margin-left: auto;
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-open-flow:hover {
+  background: #764ba2;
+  transform: scale(1.05);
+}
+
 .status-icon {
   font-size: 18px;
 }
@@ -213,6 +233,11 @@ h2 {
   margin-bottom: 10px;
   font-family: 'Courier New', monospace;
   font-size: 11px;
+}
+
+.log-buttons {
+  display: flex;
+  gap: 10px;
 }
 
 .log-entry {

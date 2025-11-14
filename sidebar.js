@@ -3,6 +3,7 @@ console.log('🎬 MamaCat Sidebar Loaded');
 
 // State Management
 const state = {
+  folderHandle: null,
   promptsData: null,
   ingredientsData: null,
   baseCat01: null,
@@ -11,6 +12,12 @@ const state = {
   stories: [],
   selectedStories: [],
   isRunning: false,
+  scannedFiles: {
+    promptsExcel: null,
+    ingredientsExcel: null,
+    baseCat01: null,
+    baseCat02: null
+  },
   currentProgress: {
     stories: 0,
     totalStories: 0,
@@ -22,23 +29,24 @@ const state = {
 
 // DOM Elements
 const elements = {
-  // File inputs
-  promptsFile: document.getElementById('promptsFile'),
-  ingredientsFile: document.getElementById('ingredientsFile'),
-  baseCat01: document.getElementById('baseCat01'),
-  baseCat02: document.getElementById('baseCat02'),
-  
-  // Displays
-  promptsDisplay: document.getElementById('promptsDisplay'),
-  ingredientsDisplay: document.getElementById('ingredientsDisplay'),
-  baseCat01Display: document.getElementById('baseCat01Display'),
-  baseCat02Display: document.getElementById('baseCat02Display'),
+  // File selection
+  selectAllFilesBtn: document.getElementById('selectAllFilesBtn'),
+  allFilesInput: document.getElementById('allFilesInput'),
+  scanFolderBtn: document.getElementById('scanFolderBtn'),
+  changeFolderBtn: document.getElementById('changeFolderBtn'),
+  folderInfo: document.getElementById('folderInfo'),
+  folderName: document.getElementById('folderName'),
+  scanResults: document.getElementById('scanResults'),
+  scanResultsContent: document.getElementById('scanResultsContent'),
   
   // Buttons
+  openFlowBtn: document.getElementById('openFlowBtn'),
   setupBtn: document.getElementById('setupBtn'),
   startBtn: document.getElementById('startBtn'),
   stopBtn: document.getElementById('stopBtn'),
   clearLogBtn: document.getElementById('clearLogBtn'),
+  clearLogBtn2: document.getElementById('clearLogBtn2'),
+  copyLogBtn: document.getElementById('copyLogBtn'),
   exportReportBtn: document.getElementById('exportReportBtn'),
   
   // Sections
@@ -78,23 +86,268 @@ const elements = {
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   checkGoogleLabsConnection();
+  checkFileSystemAPISupport();
   addLog('info', '🎬 MamaCat Video Generator Ready');
-  addLog('info', 'Please upload your files to begin');
+  addLog('info', 'Please select all files to begin');
 });
+
+// ═══════════════════════════════════════════════════════════
+// FILE SELECTION (Multi-file upload)
+// ═══════════════════════════════════════════════════════════
+
+function checkFileSystemAPISupport() {
+  addLog('info', '📁 Using multi-file selection (browser limitation workaround)');
+  addLog('info', '💡 Select all 4 files at once: 2 Excel files + 2 images');
+  return true;
+}
+
+async function handleAllFilesSelected(event) {
+  const files = Array.from(event.target.files);
+  
+  if (files.length === 0) {
+    addLog('warning', 'No files selected');
+    return;
+  }
+  
+  addLog('info', `📂 Processing ${files.length} files...`);
+  
+  const results = {
+    promptsExcel: [],
+    ingredientsExcel: [],
+    baseCat01: null,
+    baseCat02: null
+  };
+  
+  // Process each file
+  for (const file of files) {
+    const fileName = file.name.toLowerCase();
+    
+    try {
+      // Check for Excel files
+      if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        addLog('info', `📊 Reading Excel: ${file.name}`);
+        const fileData = await readExcelFile(file);
+        const fileType = await detectExcelType(fileData, file.name);
+        
+        if (fileType === 'prompts') {
+          results.promptsExcel.push({ file, data: fileData, name: file.name });
+          addLog('success', `✅ Prompts Excel: ${file.name}`);
+        } else if (fileType === 'ingredients') {
+          results.ingredientsExcel.push({ file, data: fileData, name: file.name });
+          addLog('success', `✅ Ingredients Excel: ${file.name}`);
+        } else {
+          addLog('warning', `⚠️ Unknown Excel type: ${file.name}`);
+        }
+      }
+      
+      // Check for base cat images
+      if (fileName.match(/^01\.(jpg|jpeg|png)$/i)) {
+        results.baseCat01 = file;
+        addLog('success', `✅ Base Cat 01: ${file.name}`);
+      }
+      if (fileName.match(/^02\.(jpg|jpeg|png)$/i)) {
+        results.baseCat02 = file;
+        addLog('success', `✅ Base Cat 02: ${file.name}`);
+      }
+    } catch (error) {
+      addLog('error', `Failed to process ${file.name}: ${error.message}`);
+    }
+  }
+  
+  // Display results
+  displayScanResults(results);
+  
+  // Save to state if all files found
+  if (results.promptsExcel.length > 0 && results.ingredientsExcel.length > 0 && 
+      results.baseCat01 && results.baseCat02) {
+    
+    state.promptsData = results.promptsExcel[0].data;
+    state.ingredientsData = results.ingredientsExcel[0].data;
+    state.baseCat01 = results.baseCat01;
+    state.baseCat02 = results.baseCat02;
+    
+    state.scannedFiles = {
+      promptsExcel: results.promptsExcel[0],
+      ingredientsExcel: results.ingredientsExcel[0],
+      baseCat01: results.baseCat01,
+      baseCat02: results.baseCat02
+    };
+    
+    // Show results
+    elements.folderInfo.style.display = 'block';
+    elements.folderName.textContent = `${files.length} files loaded`;
+    elements.scanResults.style.display = 'block';
+    
+    // Enable setup button
+    elements.setupBtn.disabled = false;
+    
+    addLog('success', '✅ All required files found!');
+    addLog('info', 'Click "Setup & Verify Files" to continue');
+  } else {
+    addLog('warning', '⚠️ Some required files are missing');
+    addLog('info', 'Required: 2 Excel files (Prompts + Ingredients) + 2 images (01 + 02)');
+  }
+}
+
+
+
+async function detectExcelType(data, fileName) {
+  // Check worksheets for column patterns
+  for (const sheetName in data) {
+    const rows = data[sheetName];
+    if (rows.length === 0) continue;
+    
+    const columns = Object.keys(rows[0]);
+    
+    // Prompts file has: Prompt, Ingredients_No
+    if (columns.includes('Prompt') && columns.includes('Ingredients_No')) {
+      return 'prompts';
+    }
+    
+    // Ingredients file has: Ingredient_No, Title, Prompt
+    if (columns.includes('Ingredient_No') && columns.includes('Title')) {
+      return 'ingredients';
+    }
+  }
+  
+  return 'unknown';
+}
+
+function displayScanResults(results) {
+  let html = '';
+  
+  // Prompts Excel
+  if (results.promptsExcel.length > 0) {
+    const file = results.promptsExcel[0];
+    const worksheetCount = Object.keys(file.data).length;
+    let totalPrompts = 0;
+    for (const sheet in file.data) {
+      totalPrompts += file.data[sheet].length;
+    }
+    
+    html += `
+      <div class="file-found">
+        ✅ <strong>Prompts Excel:</strong> ${file.name}
+        <div class="file-detail">📊 ${worksheetCount} worksheets, ${totalPrompts} total prompts</div>
+      </div>
+    `;
+  } else {
+    html += `
+      <div class="file-error">
+        ❌ <strong>Prompts Excel:</strong> Not found
+        <div class="file-detail">Looking for Excel file with columns: Prompt, Ingredients_No</div>
+      </div>
+    `;
+  }
+  
+  // Ingredients Excel
+  if (results.ingredientsExcel.length > 0) {
+    const file = results.ingredientsExcel[0];
+    const worksheetCount = Object.keys(file.data).length;
+    let totalIngredients = 0;
+    for (const sheet in file.data) {
+      totalIngredients += file.data[sheet].length;
+    }
+    
+    html += `
+      <div class="file-found">
+        ✅ <strong>Ingredients Excel:</strong> ${file.name}
+        <div class="file-detail">📊 ${worksheetCount} worksheets, ${totalIngredients} total ingredients</div>
+      </div>
+    `;
+  } else {
+    html += `
+      <div class="file-error">
+        ❌ <strong>Ingredients Excel:</strong> Not found
+        <div class="file-detail">Looking for Excel file with columns: Ingredient_No, Title, Prompt</div>
+      </div>
+    `;
+  }
+  
+  // Base Cat 01
+  if (results.baseCat01) {
+    const sizeKB = (results.baseCat01.size / 1024).toFixed(1);
+    html += `
+      <div class="file-found">
+        ✅ <strong>Base Cat 01 (Mama Cat):</strong> ${results.baseCat01.name}
+        <div class="file-detail">📸 ${sizeKB} KB</div>
+      </div>
+    `;
+  } else {
+    html += `
+      <div class="file-error">
+        ❌ <strong>Base Cat 01:</strong> Not found
+        <div class="file-detail">Looking for: 01.jpg or 01.jpeg or 01.png</div>
+      </div>
+    `;
+  }
+  
+  // Base Cat 02
+  if (results.baseCat02) {
+    const sizeKB = (results.baseCat02.size / 1024).toFixed(1);
+    html += `
+      <div class="file-found">
+        ✅ <strong>Base Cat 02 (Kitten):</strong> ${results.baseCat02.name}
+        <div class="file-detail">📸 ${sizeKB} KB</div>
+      </div>
+    `;
+  } else {
+    html += `
+      <div class="file-error">
+        ❌ <strong>Base Cat 02:</strong> Not found
+        <div class="file-detail">Looking for: 02.jpg or 02.jpeg or 02.png</div>
+      </div>
+    `;
+  }
+  
+  elements.scanResultsContent.innerHTML = html;
+}
+
+
+
+// Helper function to read Excel file
+async function readExcelFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        const result = {};
+        workbook.SheetNames.forEach(sheetName => {
+          const worksheet = workbook.Sheets[sheetName];
+          result[sheetName] = XLSX.utils.sheet_to_json(worksheet);
+        });
+        
+        resolve(result);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsArrayBuffer(file);
+  });
+}
 
 // Event Listeners
 function setupEventListeners() {
-  // File uploads
-  elements.promptsFile.addEventListener('change', (e) => handleFileUpload(e, 'prompts'));
-  elements.ingredientsFile.addEventListener('change', (e) => handleFileUpload(e, 'ingredients'));
-  elements.baseCat01.addEventListener('change', (e) => handleFileUpload(e, 'baseCat01'));
-  elements.baseCat02.addEventListener('change', (e) => handleFileUpload(e, 'baseCat02'));
+  // File selection
+  elements.selectAllFilesBtn.addEventListener('click', () => {
+    elements.allFilesInput.click();
+  });
+  elements.allFilesInput.addEventListener('change', handleAllFilesSelected);
   
   // Buttons
+  elements.openFlowBtn.addEventListener('click', openGoogleFlow);
   elements.setupBtn.addEventListener('click', setupAndVerify);
   elements.startBtn.addEventListener('click', startGeneration);
   elements.stopBtn.addEventListener('click', stopGeneration);
   elements.clearLogBtn.addEventListener('click', clearLog);
+  elements.clearLogBtn2.addEventListener('click', clearLog);
+  elements.copyLogBtn.addEventListener('click', copyLog);
   elements.exportReportBtn.addEventListener('click', exportReport);
   
   // Quick select buttons
@@ -488,6 +741,22 @@ function addLog(type, message) {
   
   elements.logContainer.appendChild(logEntry);
   elements.logContainer.scrollTop = elements.logContainer.scrollHeight;
+}
+
+function openGoogleFlow() {
+  chrome.tabs.create({ url: 'https://labs.google/fx/tools/flow' });
+  addLog('info', '🔗 Opening Google Flow in new tab...');
+}
+
+function copyLog() {
+  const logEntries = elements.logContainer.querySelectorAll('.log-entry');
+  const logText = Array.from(logEntries).map(entry => entry.textContent).join('\n');
+  
+  navigator.clipboard.writeText(logText).then(() => {
+    addLog('success', '📋 Log copied to clipboard!');
+  }).catch(err => {
+    addLog('error', `Failed to copy log: ${err.message}`);
+  });
 }
 
 function clearLog() {

@@ -28,7 +28,8 @@ const elements = {
   wait50Percent: document.getElementById('wait50Percent'),
   startBtn: document.getElementById('startBtn'),
   stopBtn: document.getElementById('stopBtn'),
-  exportReportBtn: document.getElementById('exportReportBtn'),
+  openFlowBtn: document.getElementById('openFlowBtn'),
+  copyLogBtn: document.getElementById('copyLogBtn'),
   clearLogBtn: document.getElementById('clearLogBtn'),
   statusBar: document.getElementById('statusBar'),
   statusText: document.getElementById('statusText'),
@@ -58,7 +59,8 @@ function setupEventListeners() {
   // Buttons
   elements.startBtn.addEventListener('click', startGeneration);
   elements.stopBtn.addEventListener('click', stopGeneration);
-  elements.exportReportBtn.addEventListener('click', exportReport);
+  elements.openFlowBtn.addEventListener('click', openGoogleFlow);
+  elements.copyLogBtn.addEventListener('click', copyLog);
   elements.clearLogBtn.addEventListener('click', clearLog);
   
   // Save config on change
@@ -219,7 +221,6 @@ async function startGeneration() {
   state.isRunning = true;
   elements.startBtn.style.display = 'none';
   elements.stopBtn.style.display = 'block';
-  elements.exportReportBtn.style.display = 'block';
   elements.progressSection.style.display = 'block';
   elements.logSection.style.display = 'block';
   
@@ -328,6 +329,23 @@ function updateStatus(text) {
   }
 }
 
+function openGoogleFlow() {
+  chrome.tabs.create({ url: 'https://labs.google/fx/tools/flow' });
+  addLog('info', '🔗 Opening Google Flow in new tab...');
+}
+
+function copyLog() {
+  const logText = state.logs.map(log => 
+    `[${log.time}] [${log.type.toUpperCase()}] ${log.message}`
+  ).join('\n');
+  
+  navigator.clipboard.writeText(logText).then(() => {
+    addLog('success', '📋 Log copied to clipboard!');
+  }).catch(err => {
+    addLog('error', `Failed to copy log: ${err.message}`);
+  });
+}
+
 function checkIfOnGoogleLabs() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0] && tabs[0].url.includes('labs.google')) {
@@ -338,49 +356,7 @@ function checkIfOnGoogleLabs() {
   });
 }
 
-function exportReport() {
-  const report = generateReport();
-  const blob = new Blob([report], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `MamaCat_Report_${new Date().toISOString().slice(0, 10)}.txt`;
-  a.click();
-  
-  URL.revokeObjectURL(url);
-  addLog('success', 'Report exported');
-}
 
-function generateReport() {
-  const lines = [];
-  lines.push('╔═══════════════════════════════════════════════════════════╗');
-  lines.push('║         MAMACAT VIDEO GENERATION REPORT                  ║');
-  lines.push('╚═══════════════════════════════════════════════════════════╝');
-  lines.push('');
-  lines.push(`📅 Date: ${new Date().toLocaleString()}`);
-  lines.push(`📁 Project: ${elements.projectName.value || 'N/A'}`);
-  lines.push('');
-  lines.push('📊 STATISTICS');
-  lines.push('─────────────────────────────────────────────────────────');
-  lines.push(`Prompts Processed: ${state.currentProgress.prompts}/${state.currentProgress.totalPrompts}`);
-  lines.push(`Ingredients Used: ${state.currentProgress.ingredients}/${state.currentProgress.totalIngredients}`);
-  lines.push(`Videos Generated: ${state.currentProgress.videos}`);
-  lines.push('');
-  lines.push('📝 ACTIVITY LOG');
-  lines.push('─────────────────────────────────────────────────────────');
-  
-  state.logs.forEach(log => {
-    lines.push(`[${log.time}] [${log.type.toUpperCase()}] ${log.message}`);
-  });
-  
-  lines.push('');
-  lines.push('╔═══════════════════════════════════════════════════════════╗');
-  lines.push('║                    END OF REPORT                          ║');
-  lines.push('╚═══════════════════════════════════════════════════════════╝');
-  
-  return lines.join('\n');
-}
 
 function saveState() {
   const stateToSave = {

@@ -16,6 +16,9 @@
     <div class="status-bar" id="statusBar">
       <span class="status-icon">⚡</span>
       <span id="statusText">Ready to start</span>
+      <button class="btn-open-flow" id="openFlowBtn" title="Open Google Flow">
+        <span>🔗</span>
+      </button>
     </div>
 
     <section class="upload-section">
@@ -103,7 +106,13 @@
     <section class="log-section" id="logSection" style="display: none;">
       <h2>📝 Activity Log</h2>
       <div class="log-container" id="logContainer"></div>
-      <button class="btn btn-secondary" id="clearLogBtn">Clear Log</button>
+      <div class="log-buttons">
+        <button class="btn btn-secondary" id="copyLogBtn">
+          <span class="btn-icon">📋</span>
+          Copy Log
+        </button>
+        <button class="btn btn-secondary" id="clearLogBtn">Clear Log</button>
+      </div>
     </section>
 
     <div class="action-buttons">
@@ -115,10 +124,7 @@
         <span class="btn-icon">⏹️</span>
         Stop
       </button>
-      <button class="btn btn-secondary" id="exportReportBtn" style="display: none;">
-        <span class="btn-icon">📄</span>
-        Export Report
-      </button>
+
     </div>
 
     <footer>

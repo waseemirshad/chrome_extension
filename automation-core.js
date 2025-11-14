@@ -1,9 +1,9 @@
-// Updated automation core with correct selectors from Python script
+// Automation core with correct selectors from Python script
 // Based on c1_video_generator.py
 
 class GoogleLabsAutomation {
   constructor() {
-    this.driver = null; // Will be window.document
+    this.driver = null;
     this.ingredientMapping = {};
     this.isRunning = false;
     this.config = null;
@@ -22,18 +22,33 @@ class GoogleLabsAutomation {
     }, '*');
   }
 
+  // Helper to find element by XPath
+  getElementByXPath(xpath) {
+    return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+  }
+
+  getElementsByXPath(xpath) {
+    const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    const nodes = [];
+    for (let i = 0; i < result.snapshotLength; i++) {
+      nodes.push(result.snapshotItem(i));
+    }
+    return nodes;
+  }
+
   // ═══════════════════════════════════════════════════════════
   // STEP 1: CREATE NEW PROJECT
-  // From Python: create_new_project()
   // ═══════════════════════════════════════════════════════════
   
   async createNewProject(projectName) {
     this.log('info', `🆕 Creating project: ${projectName}`);
     
     try {
-      // Click "Create" or "New Project" button
-      // Python uses: button with specific class or text
-      const createButton = document.querySelector('button[aria-label*="Create"], button:has-text("Create")');
+      // Look for Create button
+      const createButton = document.querySelector('button[aria-label*="Create"]') ||
+                          Array.from(document.querySelectorAll('button')).find(btn => 
+                            btn.textContent.includes('Create')
+                          );
       
       if (createButton) {
         createButton.click();
@@ -42,14 +57,13 @@ class GoogleLabsAutomation {
       }
       
       // Enter project name
-      // Python uses: input field or contenteditable
-      const nameInput = document.querySelector('input[type="text"], [contenteditable="true"]');
+      const nameInput = document.querySelector('input[type="text"]') ||
+                       document.querySelector('[contenteditable="true"]');
       
       if (nameInput) {
         nameInput.focus();
         await this.wait(500);
         
-        // Clear and enter name
         if (nameInput.tagName === 'INPUT') {
           nameInput.value = projectName;
           nameInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -70,7 +84,6 @@ class GoogleLabsAutomation {
 
   // ═══════════════════════════════════════════════════════════
   // STEP 2: SWITCH TO INGREDIENTS MODE
-  // From Python: switch_to_ingredients_mode()
   // ═══════════════════════════════════════════════════════════
   
   async switchToIngredientsMode() {
@@ -78,9 +91,8 @@ class GoogleLabsAutomation {
     
     try {
       // Look for Ingredients tab/button
-      // Python uses: button or tab with "Ingredients" text
-      const ingredientsButton = document.querySelector(
-        'button:has-text("Ingredients"), [role="tab"]:has-text("Ingredients")'
+      const ingredientsButton = Array.from(document.querySelectorAll('button, [role="tab"]')).find(btn =>
+        btn.textContent.includes('Ingredients')
       );
       
       if (ingredientsButton) {
@@ -100,16 +112,14 @@ class GoogleLabsAutomation {
 
   // ═══════════════════════════════════════════════════════════
   // STEP 3: OPEN GENERATE IMAGE DIALOG
-  // From Python: open_generate_image_dialog()
   // ═══════════════════════════════════════════════════════════
   
   async openGenerateImageDialog() {
     this.log('info', '🖼️ Opening Generate Image dialog...');
     
     try {
-      // Look for Generate Image button
-      const generateButton = document.querySelector(
-        'button:has-text("Generate Image"), button:has-text("Generate"), button[aria-label*="Generate"]'
+      const generateButton = Array.from(document.querySelectorAll('button')).find(btn =>
+        btn.textContent.includes('Generate Image') || btn.textContent.includes('Generate')
       );
       
       if (generateButton) {
@@ -129,26 +139,25 @@ class GoogleLabsAutomation {
 
   // ═══════════════════════════════════════════════════════════
   // STEP 4: ENTER PROMPT AND GENERATE
-  // From Python: enter_prompt_and_generate()
-  // Uses: textarea[data-testid='prompt-textarea'] or by placeholder
+  // From Python: Uses textarea[data-testid='prompt-textarea']
   // ═══════════════════════════════════════════════════════════
   
   async enterPromptAndGenerate(promptText, ingredientNum) {
     this.log('info', `[GENERATE ${ingredientNum}] Entering prompt...`);
     
     try {
-      // Find textarea - EXACT selectors from Python
+      // Find textarea - EXACT methods from Python
       let textarea = null;
       
-      // Method 1: By data-testid (Python line ~8500)
+      // Method 1: By data-testid (Python line 817)
       textarea = document.querySelector('textarea[data-testid="prompt-textarea"]');
       
-      // Method 2: By placeholder
+      // Method 2: By placeholder (Python line 824)
       if (!textarea) {
-        textarea = document.querySelector('textarea[placeholder*="Describe"]');
+        textarea = this.getElementByXPath("//textarea[contains(@placeholder, 'Describe')]");
       }
       
-      // Method 3: Any textarea
+      // Method 3: Any textarea (Python line 831)
       if (!textarea) {
         const textareas = document.querySelectorAll('textarea');
         if (textareas.length > 0) textarea = textareas[0];
@@ -166,11 +175,13 @@ class GoogleLabsAutomation {
       textarea.click();
       await this.wait(500);
       
-      // Clear existing text
+      // Clear existing text (Python line 854-859)
+      textarea.click();
+      await this.wait(300);
       textarea.value = '';
       await this.wait(300);
       
-      // Enter new text
+      // Enter new text (Python line 862-863)
       textarea.value = promptText;
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
       textarea.dispatchEvent(new Event('change', { bubbles: true }));
@@ -179,21 +190,24 @@ class GoogleLabsAutomation {
       
       this.log('success', `[GENERATE ${ingredientNum}] ✅ Prompt entered`);
       
-      // Wait 3 seconds before clicking generate (Python line ~8550)
+      // Wait 3 seconds before clicking generate (Python line 880-884)
       this.log('info', `[GENERATE ${ingredientNum}] ⏳ Waiting 3 seconds...`);
       await this.wait(3000);
       
-      // Click generate button - EXACT selector from Python
-      // Python uses: button with arrow_forward icon (line ~8560)
+      // Click generate button - EXACT selector from Python (line 892-895)
       let generateBtn = null;
       
       // Method 1: By icon (Python's primary method)
-      const buttons = document.querySelectorAll('button');
-      for (const btn of buttons) {
-        const html = btn.innerHTML;
-        if (html.includes('arrow_forward') && btn.disabled === false) {
-          generateBtn = btn;
-          break;
+      generateBtn = this.getElementByXPath("//button[.//i[contains(@class, 'google-symbols') and contains(., 'arrow_forward')]]");
+      
+      // Method 2: Find all buttons and check innerHTML (Python line 901-907)
+      if (!generateBtn) {
+        const buttons = document.querySelectorAll('button');
+        for (const btn of buttons) {
+          if (btn.innerHTML.includes('arrow_forward') && !btn.disabled) {
+            generateBtn = btn;
+            break;
+          }
         }
       }
       
@@ -230,13 +244,15 @@ class GoogleLabsAutomation {
     await this.wait(20000);
     totalWaited = 20;
     
-    // Check for Save button
+    // Check for Save button (Python line 996-1010)
     while (totalWaited < maxWait) {
-      // Python uses: button with "Save as New Ingredient" text (line ~8680)
-      const saveBtn = document.querySelector('button:has-text("Save as New Ingredient")') ||
-                      Array.from(document.querySelectorAll('button')).find(btn => 
-                        btn.textContent.includes('Save as New Ingredient')
-                      );
+      // Method 1: By icon and text (Python line 996-999)
+      let saveBtn = this.getElementByXPath("//button[.//i[contains(text(), 'add_photo_alternate')] and contains(., 'Save as New Ingredient')]");
+      
+      // Method 2: Simple text search (Python line 1007-1010)
+      if (!saveBtn) {
+        saveBtn = this.getElementByXPath("//button[contains(., 'Save as New Ingredient')]");
+      }
       
       if (saveBtn && saveBtn.offsetParent !== null) {
         this.log('success', `[WAIT ${ingredientNum}] ✅ Generation complete after ${totalWaited}s`);
@@ -264,11 +280,20 @@ class GoogleLabsAutomation {
     this.log('info', `[SAVE ${ingredientNum}] Clicking save button...`);
     
     try {
-      // Python uses multiple methods to find button (line ~8710)
-      const saveBtn = document.querySelector('button:has-text("Save as New Ingredient")') ||
-                      Array.from(document.querySelectorAll('button')).find(btn => 
-                        btn.textContent.includes('Save as New Ingredient')
-                      );
+      let saveBtn = null;
+      
+      // Method 1: By icon and text (Python line 1031-1035)
+      saveBtn = this.getElementByXPath("//button[.//i[contains(text(), 'add_photo_alternate')] and contains(., 'Save as New Ingredient')]");
+      
+      // Method 2: By class and text (Python line 1042-1046)
+      if (!saveBtn) {
+        saveBtn = this.getElementByXPath("//button[contains(@class, 'sc-c177465c-1') and contains(., 'Save as New Ingredient')]");
+      }
+      
+      // Method 3: Simple text search (Python line 1053-1057)
+      if (!saveBtn) {
+        saveBtn = this.getElementByXPath("//button[contains(., 'Save as New Ingredient')]");
+      }
       
       if (!saveBtn) {
         throw new Error('Save button not found');
@@ -302,12 +327,15 @@ class GoogleLabsAutomation {
     await this.wait(8000);
     totalWaited = 8;
     
-    // Check for remove button - EXACT selector from Python (line ~8800)
+    // Check for remove button - EXACT selector from Python (line 1102, 1108)
     while (totalWaited < maxWait) {
-      // Python uses: button with 'close' icon
-      const removeButtons = Array.from(document.querySelectorAll('button i')).filter(i => 
-        i.textContent === 'close'
-      ).map(i => i.closest('button'));
+      // Method 1: Full selector (Python line 1102)
+      let removeButtons = this.getElementsByXPath("//button[contains(@class, 'sc-c177465c-1') and contains(@class, 'hVamcH') and contains(@class, 'sc-74578dc8-1')]//i[text()='close']/..");
+      
+      // Method 2: Alternative selector (Python line 1108)
+      if (removeButtons.length === 0) {
+        removeButtons = this.getElementsByXPath("//button//i[text()='close']/..");
+      }
       
       if (removeButtons.length > 0) {
         this.log('success', `[SAVE WAIT ${ingredientNum}] ✅ Save complete after ${totalWaited}s`);
@@ -339,7 +367,7 @@ class GoogleLabsAutomation {
     this.log('info', `[UPLOAD ${ingredientNum}] Uploading: ${imageData.name}`);
     
     try {
-      // Find FIRST + button - EXACT selector from Python (line ~9050)
+      // Find FIRST + button - EXACT selector from Python (line 529)
       const plusButtons = document.querySelectorAll('button.sc-74578dc8-1.hopAJY');
       
       if (plusButtons.length === 0) {
@@ -350,7 +378,7 @@ class GoogleLabsAutomation {
       firstPlusButton.click();
       await this.wait(2000);
       
-      // Find file input (Python line ~9060)
+      // Find file input (Python line 544)
       const fileInputs = document.querySelectorAll('input[type="file"]');
       
       if (fileInputs.length === 0) {
@@ -371,10 +399,8 @@ class GoogleLabsAutomation {
       
       await this.wait(3000);
       
-      // Check for crop button (Python line ~9070)
-      const cropBtn = Array.from(document.querySelectorAll('button')).find(btn =>
-        btn.textContent.includes('Crop and Save') || btn.textContent.includes('Crop & Save')
-      );
+      // Check for crop button (Python line 551-554)
+      const cropBtn = this.getElementByXPath("//button[contains(., 'Crop and Save') or contains(., 'Crop & Save') or contains(., 'Crop and save')]");
       
       if (cropBtn) {
         cropBtn.click();
@@ -430,14 +456,14 @@ class GoogleLabsAutomation {
         // Find + buttons - EXACT XPath from Python (line ~9450)
         const xpath = "//textarea[@id='PINHOLE_TEXT_AREA_ELEMENT_ID']/following-sibling::div[contains(@class, 'sc-408537d4-0')]//button[contains(@class, 'hopAJY') and .//i[text()='add']]";
         
-        const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        const plusButtons = this.getElementsByXPath(xpath);
         
-        if (result.snapshotLength === 0) {
+        if (plusButtons.length === 0) {
           throw new Error('No + buttons found');
         }
         
         // Click LAST + button (Python line ~9470)
-        const lastButton = result.snapshotItem(result.snapshotLength - 1);
+        const lastButton = plusButtons[plusButtons.length - 1];
         lastButton.scrollIntoView({ block: 'center' });
         await this.wait(500);
         lastButton.click();

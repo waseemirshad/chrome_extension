@@ -17,45 +17,42 @@
     <!-- Status Bar -->
     <div class="status-bar" id="statusBar">
       <span class="status-dot" id="statusDot"></span>
-      <span id="statusText">Ready</span>
+      <span id="statusText">Checking connection...</span>
+      <button class="btn-open-flow" id="openFlowBtn" title="Open Google Flow">
+        🔗
+      </button>
     </div>
 
-    <!-- Step 1: Upload Files -->
+    <!-- Step 1: Select Project Folder -->
     <section class="section" id="uploadSection">
       <div class="section-header">
-        <h2>📁 Step 1: Upload Files</h2>
+        <h2>📁 Step 1: Select Project Folder</h2>
       </div>
       
-      <div class="upload-group">
-        <label class="upload-label">
-          <span class="label-text">📝 Prompts Excel</span>
-          <input type="file" id="promptsFile" accept=".xlsx,.xls" />
-          <div class="file-display" id="promptsDisplay">No file selected</div>
-        </label>
+      <div class="folder-selection">
+        <div class="folder-help">
+          <p>⚠️ <strong>Browser Limitation:</strong> File System Access API doesn't work in sidebars.</p>
+          <p>💡 <strong>Solution:</strong> Select all files at once using the button below:</p>
+        </div>
+        
+        <button class="btn btn-folder" id="selectAllFilesBtn">
+          <span class="btn-icon">📂</span>
+          Select All Files (Excel + Images)
+        </button>
+        
+        <input type="file" id="allFilesInput" multiple accept=".xlsx,.xls,image/*" style="display: none;" />
+        
+        <div class="folder-info" id="folderInfo" style="display: none;">
+          <div class="folder-path">
+            <span class="folder-icon">✅</span>
+            <span id="folderName">No files selected</span>
+          </div>
+        </div>
       </div>
 
-      <div class="upload-group">
-        <label class="upload-label">
-          <span class="label-text">🎨 Ingredients Excel</span>
-          <input type="file" id="ingredientsFile" accept=".xlsx,.xls" />
-          <div class="file-display" id="ingredientsDisplay">No file selected</div>
-        </label>
-      </div>
-
-      <div class="upload-group">
-        <label class="upload-label">
-          <span class="label-text">🐱 Base Cat 01 (Mama Cat)</span>
-          <input type="file" id="baseCat01" accept="image/*" />
-          <div class="file-display" id="baseCat01Display">No file selected</div>
-        </label>
-      </div>
-
-      <div class="upload-group">
-        <label class="upload-label">
-          <span class="label-text">🐈 Base Cat 02 (Kitten)</span>
-          <input type="file" id="baseCat02" accept="image/*" />
-          <div class="file-display" id="baseCat02Display">No file selected</div>
-        </label>
+      <div class="scan-results" id="scanResults" style="display: none;">
+        <h3>📋 Found Files:</h3>
+        <div id="scanResultsContent"></div>
       </div>
     </section>
 
@@ -183,13 +180,19 @@
       </div>
       
       <div class="log-container" id="logContainer"></div>
+      
+      <div class="log-actions">
+        <button class="btn btn-secondary btn-small" id="copyLogBtn">
+          📋 Copy Log
+        </button>
+        <button class="btn btn-secondary btn-small" id="clearLogBtn2">
+          Clear
+        </button>
+      </div>
     </section>
 
     <!-- Footer -->
     <footer class="sidebar-footer">
-      <button class="btn btn-secondary btn-small" id="exportReportBtn" style="display: none;">
-        📄 Export Report
-      </button>
       <div class="version">v1.0.0</div>
     </footer>
   </div>
