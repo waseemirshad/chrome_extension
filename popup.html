@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MamaCat Video Generator</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎬 MamaCat Video Generator</h1>
+      <p class="subtitle">Automate Google Veo with Ingredients</p>
+    </header>
+
+    <div class="status-bar" id="statusBar">
+      <span class="status-icon">⚡</span>
+      <span id="statusText">Ready to start</span>
+    </div>
+
+    <section class="upload-section">
+      <h2>📁 Upload Files</h2>
+      
+      <div class="file-input-group">
+        <label for="promptsFile">
+          <span class="label-icon">📝</span>
+          <span>Prompts Excel</span>
+        </label>
+        <input type="file" id="promptsFile" accept=".xlsx,.xls" />
+        <span class="file-name" id="promptsFileName">No file selected</span>
+      </div>
+
+      <div class="file-input-group">
+        <label for="ingredientsFile">
+          <span class="label-icon">🎨</span>
+          <span>Ingredients Excel</span>
+        </label>
+        <input type="file" id="ingredientsFile" accept=".xlsx,.xls" />
+        <span class="file-name" id="ingredientsFileName">No file selected</span>
+      </div>
+
+      <div class="file-input-group">
+        <label for="baseCatFiles">
+          <span class="label-icon">🐱</span>
+          <span>Base Cat Images (01.jpeg, 02.jpeg)</span>
+        </label>
+        <input type="file" id="baseCatFiles" accept="image/*" multiple />
+        <span class="file-name" id="baseCatFilesName">No files selected</span>
+      </div>
+    </section>
+
+    <section class="config-section">
+      <h2>⚙️ Configuration</h2>
+      
+      <div class="config-item">
+        <label for="projectName">Project Name:</label>
+        <input type="text" id="projectName" placeholder="MamaCat - Story Name" />
+      </div>
+
+      <div class="config-item">
+        <label for="maxConcurrent">Max Concurrent (even numbers):</label>
+        <input type="number" id="maxConcurrent" value="8" min="2" max="8" step="2" />
+      </div>
+
+      <div class="config-item checkbox-item">
+        <input type="checkbox" id="reverseOrder" checked />
+        <label for="reverseOrder">Process in reverse order (25→1)</label>
+      </div>
+
+      <div class="config-item checkbox-item">
+        <input type="checkbox" id="wait50Percent" checked />
+        <label for="wait50Percent">Wait for 50% before next prompt</label>
+      </div>
+    </section>
+
+    <section class="progress-section" id="progressSection" style="display: none;">
+      <h2>📊 Progress</h2>
+      
+      <div class="progress-stats">
+        <div class="stat-item">
+          <span class="stat-label">Prompts:</span>
+          <span class="stat-value" id="promptsProgress">0/0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Ingredients:</span>
+          <span class="stat-value" id="ingredientsProgress">0/0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Videos:</span>
+          <span class="stat-value" id="videosProgress">0</span>
+        </div>
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <div class="current-task" id="currentTask">
+        Initializing...
+      </div>
+    </section>
+
+    <section class="log-section" id="logSection" style="display: none;">
+      <h2>📝 Activity Log</h2>
+      <div class="log-container" id="logContainer"></div>
+      <button class="btn btn-secondary" id="clearLogBtn">Clear Log</button>
+    </section>
+
+    <div class="action-buttons">
+      <button class="btn btn-primary" id="startBtn">
+        <span class="btn-icon">🚀</span>
+        Start Generation
+      </button>
+      <button class="btn btn-danger" id="stopBtn" style="display: none;">
+        <span class="btn-icon">⏹️</span>
+        Stop
+      </button>
+      <button class="btn btn-secondary" id="exportReportBtn" style="display: none;">
+        <span class="btn-icon">📄</span>
+        Export Report
+      </button>
+    </div>
+
+    <footer>
+      <p class="version">v1.0.0 | Hybrid Ingredient System</p>
+    </footer>
+  </div>
+
+  <script src="libs/xlsx.full.min.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

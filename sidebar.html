@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MamaCat Video Generator</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body>
+  <div class="sidebar-container">
+    <!-- Header -->
+    <header class="sidebar-header">
+      <h1>🎬 MamaCat</h1>
+      <p class="subtitle">Video Generator</p>
+    </header>
+
+    <!-- Status Bar -->
+    <div class="status-bar" id="statusBar">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Ready</span>
+    </div>
+
+    <!-- Step 1: Upload Files -->
+    <section class="section" id="uploadSection">
+      <div class="section-header">
+        <h2>📁 Step 1: Upload Files</h2>
+      </div>
+      
+      <div class="upload-group">
+        <label class="upload-label">
+          <span class="label-text">📝 Prompts Excel</span>
+          <input type="file" id="promptsFile" accept=".xlsx,.xls" />
+          <div class="file-display" id="promptsDisplay">No file selected</div>
+        </label>
+      </div>
+
+      <div class="upload-group">
+        <label class="upload-label">
+          <span class="label-text">🎨 Ingredients Excel</span>
+          <input type="file" id="ingredientsFile" accept=".xlsx,.xls" />
+          <div class="file-display" id="ingredientsDisplay">No file selected</div>
+        </label>
+      </div>
+
+      <div class="upload-group">
+        <label class="upload-label">
+          <span class="label-text">🐱 Base Cat 01 (Mama Cat)</span>
+          <input type="file" id="baseCat01" accept="image/*" />
+          <div class="file-display" id="baseCat01Display">No file selected</div>
+        </label>
+      </div>
+
+      <div class="upload-group">
+        <label class="upload-label">
+          <span class="label-text">🐈 Base Cat 02 (Kitten)</span>
+          <input type="file" id="baseCat02" accept="image/*" />
+          <div class="file-display" id="baseCat02Display">No file selected</div>
+        </label>
+      </div>
+    </section>
+
+    <!-- Step 2: Setup & Verify -->
+    <section class="section" id="setupSection">
+      <div class="section-header">
+        <h2>⚙️ Step 2: Setup & Verify</h2>
+      </div>
+      
+      <button class="btn btn-setup" id="setupBtn" disabled>
+        <span class="btn-icon">🔍</span>
+        Setup & Verify Files
+      </button>
+
+      <div class="verification-results" id="verificationResults" style="display: none;">
+        <h3>Verification Results:</h3>
+        <div id="verificationContent"></div>
+      </div>
+    </section>
+
+    <!-- Step 3: Select Stories -->
+    <section class="section" id="storiesSection" style="display: none;">
+      <div class="section-header">
+        <h2>📚 Step 3: Select Stories</h2>
+      </div>
+
+      <div class="stories-list" id="storiesList"></div>
+
+      <div class="selection-input">
+        <label for="storySelection">
+          <span class="label-text">Select Stories:</span>
+          <small>Examples: "1-10", "1,3,5", "all", or "2"</small>
+        </label>
+        <input type="text" id="storySelection" placeholder="e.g., 1-5 or all" />
+      </div>
+
+      <div class="quick-select">
+        <button class="btn-quick" data-select="all">All Stories</button>
+        <button class="btn-quick" data-select="1-5">First 5</button>
+        <button class="btn-quick" data-select="1-10">First 10</button>
+      </div>
+    </section>
+
+    <!-- Step 4: Configuration -->
+    <section class="section" id="configSection" style="display: none;">
+      <div class="section-header">
+        <h2>⚙️ Step 4: Configuration</h2>
+      </div>
+
+      <div class="config-group">
+        <label for="maxConcurrent">Max Concurrent Videos:</label>
+        <select id="maxConcurrent">
+          <option value="2">2</option>
+          <option value="4" selected>4</option>
+          <option value="6">6</option>
+          <option value="8">8</option>
+        </select>
+      </div>
+
+      <div class="config-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="reverseOrder" checked />
+          <span>Process in reverse order (25→1)</span>
+        </label>
+      </div>
+
+      <div class="config-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="wait50Percent" checked />
+          <span>Wait for 50% before next prompt</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Step 5: Start Generation -->
+    <section class="section" id="actionSection" style="display: none;">
+      <div class="section-header">
+        <h2>🚀 Step 5: Generate Videos</h2>
+      </div>
+
+      <button class="btn btn-primary btn-large" id="startBtn">
+        <span class="btn-icon">🚀</span>
+        Start Generation
+      </button>
+
+      <button class="btn btn-danger btn-large" id="stopBtn" style="display: none;">
+        <span class="btn-icon">⏹️</span>
+        Stop
+      </button>
+    </section>
+
+    <!-- Progress Section -->
+    <section class="section" id="progressSection" style="display: none;">
+      <div class="section-header">
+        <h2>📊 Progress</h2>
+      </div>
+
+      <div class="progress-stats">
+        <div class="stat-card">
+          <div class="stat-label">Stories</div>
+          <div class="stat-value" id="storiesProgress">0/0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Prompts</div>
+          <div class="stat-value" id="promptsProgress">0/0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Videos</div>
+          <div class="stat-value" id="videosProgress">0</div>
+        </div>
+      </div>
+
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <div class="current-task" id="currentTask">Initializing...</div>
+    </section>
+
+    <!-- Activity Log -->
+    <section class="section" id="logSection">
+      <div class="section-header">
+        <h2>📝 Activity Log</h2>
+        <button class="btn-icon-only" id="clearLogBtn" title="Clear log">🗑️</button>
+      </div>
+      
+      <div class="log-container" id="logContainer"></div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="sidebar-footer">
+      <button class="btn btn-secondary btn-small" id="exportReportBtn" style="display: none;">
+        📄 Export Report
+      </button>
+      <div class="version">v1.0.0</div>
+    </footer>
+  </div>
+
+  <script src="libs/xlsx.full.min.js"></script>
+  <script src="sidebar.js"></script>
+</body>
+</html>
